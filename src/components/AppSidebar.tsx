@@ -97,6 +97,16 @@ export function AppSidebar() {
 
   const collapsed = state === "collapsed";
 
+  const suppressMotionForATick = () => {
+    setMotionReady(false);
+    // Two rAFs to ensure the DOM has applied the new layout/state before re-enabling transitions.
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => setMotionReady(true));
+      return () => cancelAnimationFrame(raf2);
+    });
+    return () => cancelAnimationFrame(raf1);
+  };
+
   // When switching from collapsed (mini) -> expanded, the UI used to force all categories open.
   // If the user had categories saved as closed, expanding would immediately animate a mass-close.
   // We disable animations for a single frame on that transition.
@@ -105,10 +115,9 @@ export function AppSidebar() {
     const wasCollapsed = prevCollapsedRef.current;
     prevCollapsedRef.current = collapsed;
 
-    if (wasCollapsed && !collapsed) {
-      setMotionReady(false);
-      const raf = requestAnimationFrame(() => setMotionReady(true));
-      return () => cancelAnimationFrame(raf);
+    // Any toggle of the sidebar (collapsed <-> expanded) should NOT re-run category animations.
+    if (wasCollapsed !== collapsed) {
+      return suppressMotionForATick();
     }
   }, [collapsed]);
 
@@ -149,8 +158,7 @@ export function AppSidebar() {
     setMotionReady(false);
     setOpenByCategory(readOpenStateFromStorage());
 
-    const raf = requestAnimationFrame(() => setMotionReady(true));
-    return () => cancelAnimationFrame(raf);
+    return suppressMotionForATick();
   }, [isMobile, openMobile]);
 
   useEffect(() => {
