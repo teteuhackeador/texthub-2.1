@@ -179,7 +179,9 @@ export function AppSidebar() {
                     overflow-hidden
                     h-0
                     data-[state=open]:h-[var(--radix-collapsible-content-height)]
-                    transition-[height] duration-300 ease-in-out
+                    transition-[height] ease-in-out
+                    data-[state=open]:duration-300 data-[state=open]:delay-0
+                    data-[state=closed]:duration-[520ms] data-[state=closed]:delay-[140ms]
                     data-[state=closed]:pointer-events-none
                   "
                 >
