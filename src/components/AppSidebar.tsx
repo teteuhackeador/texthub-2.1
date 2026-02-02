@@ -19,7 +19,7 @@ import {
   Cloud,
   ChevronDown,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -42,6 +42,7 @@ import {
 
 const STAGGER_MS = 70;
 const ITEM_ANIM_MS = 280;
+const OPEN_STATE_STORAGE_KEY = "texthub.sidebar.openByCategory.v1";
 
 const menuCategories = [
   {
@@ -100,7 +101,32 @@ export function AppSidebar() {
     () => Object.fromEntries(menuCategories.map((c) => [c.label, true])) as Record<string, boolean>,
     [],
   );
-  const [openByCategory, setOpenByCategory] = useState<Record<string, boolean>>(defaultOpenByCategory);
+
+  const [openByCategory, setOpenByCategory] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(OPEN_STATE_STORAGE_KEY);
+      if (!raw) return defaultOpenByCategory;
+      const parsed = JSON.parse(raw) as Record<string, boolean>;
+      // Ensure all categories exist (handles future label changes safely)
+      return { ...defaultOpenByCategory, ...parsed };
+    } catch {
+      return defaultOpenByCategory;
+    }
+  });
+
+  // Prevent “startup” animations when the sidebar remounts (ex: mobile close/open).
+  const [motionReady, setMotionReady] = useState(false);
+  useEffect(() => {
+    setMotionReady(true);
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OPEN_STATE_STORAGE_KEY, JSON.stringify(openByCategory));
+    } catch {
+      // ignore
+    }
+  }, [openByCategory]);
 
   const handleNavClick = () => {
     // Close mobile sidebar when a nav item is clicked
@@ -155,6 +181,8 @@ export function AppSidebar() {
           // Delay the height collapse so items can fade out bottom->top without being clipped.
           const closeDelayMs = Math.max(0, totalCloseMs - closeCollapseMs);
 
+          const animationsEnabled = motionReady;
+
           return (
             <Collapsible
               key={category.label}
@@ -193,8 +221,10 @@ export function AppSidebar() {
                     data-[state=closed]:pointer-events-none
                   "
                   style={{
-                    transitionDuration: `${open ? openDurationMs : closeCollapseMs}ms`,
-                    transitionDelay: `${open ? 0 : closeDelayMs}ms`,
+                    transitionDuration: animationsEnabled
+                      ? `${open ? openDurationMs : closeCollapseMs}ms`
+                      : "0ms",
+                    transitionDelay: animationsEnabled ? `${open ? 0 : closeDelayMs}ms` : "0ms",
                   }}
                 >
                   <SidebarGroupContent>
@@ -203,7 +233,7 @@ export function AppSidebar() {
                         const delayIndex = open
                           ? index
                           : (category.items.length - 1 - index);
-                        const delayMs = delayIndex * STAGGER_MS;
+                        const delayMs = animationsEnabled ? delayIndex * STAGGER_MS : 0;
 
                         return (
                         <SidebarMenuItem
