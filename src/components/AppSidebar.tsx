@@ -175,14 +175,24 @@ export function AppSidebar() {
                   className="
                     overflow-hidden
                     data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down
-                    data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1
-                    data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1
+                      group/cat
                   "
                 >
                   <SidebarGroupContent>
                     <SidebarMenu className="space-y-1">
-                      {category.items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
+                      {category.items.map((item, index) => (
+                        <SidebarMenuItem
+                          key={item.title}
+                          className={
+                            [
+                              // Minimal stagger: slide+fade, one-by-one.
+                              "transition-[transform,opacity] duration-200 ease-out will-change-transform",
+                              "group-data-[state=open]/cat:translate-y-0 group-data-[state=open]/cat:opacity-100",
+                              "group-data-[state=closed]/cat:-translate-y-1 group-data-[state=closed]/cat:opacity-0",
+                            ].join(" ")
+                          }
+                          style={{ transitionDelay: `${index * 45}ms` }}
+                        >
                           <SidebarMenuButton asChild className="w-full">
                             <NavLink
                               to={item.url}
