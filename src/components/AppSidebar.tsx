@@ -176,11 +176,10 @@ export function AppSidebar() {
           // Keep the container (height) transition long enough so the last staggered
           // item can finish animating before the content gets clipped.
           const openDurationMs = 300;
+          const closeCollapseMs = 260;
           const totalCloseMs = Math.max(0, (itemCount - 1) * STAGGER_MS + ITEM_ANIM_MS);
-          // Close: let items start fading first (very short delay), then collapse so the next
-          // category moves up while the stagger is still happening.
-          const closeCollapseMs = Math.max(260, totalCloseMs);
-          const closeDelayMs = Math.min(120, Math.floor(totalCloseMs * 0.2));
+          // Delay the height collapse so items can fade out bottom->top without being clipped.
+          const closeDelayMs = Math.max(0, totalCloseMs - closeCollapseMs);
 
           const animationsEnabled = motionReady;
 
