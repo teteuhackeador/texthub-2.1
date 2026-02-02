@@ -268,7 +268,7 @@ const FilterCloud = () => {
           </Card>
         )}
 
-        <Card className="glass-card">
+        <Card key={`input-${filterMode}`} className="glass-card">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">
@@ -362,7 +362,7 @@ const FilterCloud = () => {
           )}
         </div>
 
-        <Card className="glass-card">
+        <Card key={`output-${filterMode}`} className="glass-card">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">Resultado</CardTitle>
