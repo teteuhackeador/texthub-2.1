@@ -121,7 +121,6 @@ export function AppSidebar() {
           // esse elemento explicitamente.
           "[&_[data-sidebar=sidebar]]:bg-sidebar/35",
           "supports-[backdrop-filter]:[&_[data-sidebar=sidebar]]:bg-sidebar/20",
-          "[&_[data-sidebar=sidebar]]:backdrop-blur-md",
           // Mantém o wrapper sem fundo para não ficar opaco
           "bg-transparent",
         ].join(" ")
