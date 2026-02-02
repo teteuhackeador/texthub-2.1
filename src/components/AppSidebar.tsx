@@ -174,7 +174,9 @@ export function AppSidebar() {
                 <CollapsibleContent
                   className="
                     overflow-hidden
-                    data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down
+                    [animation-fill-mode:forwards]
+                    data-[state=open]:animate-[accordion-down_900ms_ease-out]
+                    data-[state=closed]:[animation-delay:280ms] data-[state=closed]:animate-[accordion-up_900ms_ease-in]
                       group/cat
                   "
                 >
