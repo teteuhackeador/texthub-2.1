@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/collapsible";
 
 const STAGGER_MS = 70;
+const ITEM_ANIM_MS = 280;
 
 const menuCategories = [
   {
@@ -144,6 +145,15 @@ export function AppSidebar() {
 
         {menuCategories.map((category) => {
           const open = collapsed ? true : (openByCategory[category.label] ?? true);
+          const itemCount = category.items.length;
+
+          // Keep the container (height) transition long enough so the last staggered
+          // item can finish animating before the content gets clipped.
+          const openDurationMs = 300;
+          const closeDurationMs = Math.max(
+            300,
+            (itemCount - 1) * STAGGER_MS + ITEM_ANIM_MS,
+          );
 
           return (
             <Collapsible
@@ -180,10 +190,9 @@ export function AppSidebar() {
                     h-0
                     data-[state=open]:h-[var(--radix-collapsible-content-height)]
                     transition-[height] ease-in-out
-                    data-[state=open]:duration-300 data-[state=open]:delay-0
-                    data-[state=closed]:duration-[520ms] data-[state=closed]:delay-[140ms]
                     data-[state=closed]:pointer-events-none
                   "
+                  style={{ transitionDuration: `${open ? openDurationMs : closeDurationMs}ms` }}
                 >
                   <SidebarGroupContent>
                     <SidebarMenu className="space-y-1">
