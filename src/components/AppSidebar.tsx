@@ -16,8 +16,10 @@ import {
   Ruler,
   Plus,
   FileSearch,
-  Cloud
+  Cloud,
+  ChevronDown,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -31,6 +33,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const menuCategories = [
   {
@@ -86,6 +94,12 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path;
   const collapsed = state === "collapsed";
 
+  const defaultOpenByCategory = useMemo(
+    () => Object.fromEntries(menuCategories.map((c) => [c.label, true])) as Record<string, boolean>,
+    [],
+  );
+  const [openByCategory, setOpenByCategory] = useState<Record<string, boolean>>(defaultOpenByCategory);
+
   const handleNavClick = () => {
     // Close mobile sidebar when a nav item is clicked
     setOpenMobile(false);
@@ -116,39 +130,67 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {menuCategories.map((category) => (
-          <SidebarGroup key={category.label} className="px-2">
-            <SidebarGroupLabel className="px-2 py-2 text-xs font-medium text-muted-foreground">
-              {!collapsed && category.label}
-            </SidebarGroupLabel>
+        {menuCategories.map((category) => {
+          const open = collapsed ? true : (openByCategory[category.label] ?? true);
 
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {category.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild className="w-full">
-                      <NavLink
-                        to={item.url}
-                        end
-                        onClick={handleNavClick}
-                        className={({ isActive }) =>
-                          `group/navitem flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${getNavCls({ isActive })} !overflow-visible`
-                        }
-                      >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {!collapsed && (
-                          <div className="relative z-10 min-w-0 text-sm font-medium origin-bottom inline-block will-change-transform transition-transform duration-200 group-hover/navitem:scale-110">
-                            <span className="block truncate">{item.title}</span>
-                          </div>
-                        )}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+          return (
+            <Collapsible
+              key={category.label}
+              open={open}
+              onOpenChange={(nextOpen) => {
+                if (collapsed) return;
+                setOpenByCategory((prev) => ({ ...prev, [category.label]: nextOpen }));
+              }}
+            >
+              <SidebarGroup className="px-2">
+                {collapsed ? (
+                  <SidebarGroupLabel className="px-2 py-2 text-xs font-medium text-muted-foreground">
+                    {/* No modo mini, não há clique; manter comportamento atual */}
+                  </SidebarGroupLabel>
+                ) : (
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground [&[data-state=open]>svg]:rotate-180"
+                      aria-label={`Alternar categoria ${category.label}`}
+                    >
+                      <span>{category.label}</span>
+                      <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                    </button>
+                  </CollapsibleTrigger>
+                )}
+
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <SidebarGroupContent>
+                    <SidebarMenu className="space-y-1">
+                      {category.items.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild className="w-full">
+                            <NavLink
+                              to={item.url}
+                              end
+                              onClick={handleNavClick}
+                              className={({ isActive }) =>
+                                `group/navitem flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${getNavCls({ isActive })} !overflow-visible`
+                              }
+                            >
+                              <item.icon className="w-5 h-5 flex-shrink-0" />
+                              {!collapsed && (
+                                <div className="relative z-10 min-w-0 text-sm font-medium origin-bottom inline-block will-change-transform transition-transform duration-200 group-hover/navitem:scale-110">
+                                  <span className="block truncate">{item.title}</span>
+                                </div>
+                              )}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
       </SidebarContent>
     </Sidebar>
   );
