@@ -175,11 +175,12 @@ export function AppSidebar() {
                 <CollapsibleContent
                   forceMount
                   className="
+                    group/cat
                     overflow-hidden
-                    [animation-fill-mode:forwards]
-                    data-[state=open]:animate-[accordion-down_720ms_ease-out]
-                    data-[state=closed]:[animation-delay:160ms] data-[state=closed]:animate-[accordion-up_720ms_ease-in]
-                      group/cat
+                    h-0
+                    data-[state=open]:h-[var(--radix-collapsible-content-height)]
+                    transition-[height] duration-300 ease-in-out
+                    data-[state=closed]:pointer-events-none
                   "
                 >
                   <SidebarGroupContent>
