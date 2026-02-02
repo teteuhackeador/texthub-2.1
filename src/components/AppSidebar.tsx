@@ -186,12 +186,12 @@ export function AppSidebar() {
                           className={
                             [
                               // Minimal stagger: slide+fade, one-by-one.
-                              "transition-[transform,opacity] duration-200 ease-out will-change-transform",
+                              "transition-[transform,opacity] duration-400 ease-out will-change-transform",
                               "group-data-[state=open]/cat:translate-y-0 group-data-[state=open]/cat:opacity-100",
                               "group-data-[state=closed]/cat:-translate-y-1 group-data-[state=closed]/cat:opacity-0",
                             ].join(" ")
                           }
-                          style={{ transitionDelay: `${index * 45}ms` }}
+                          style={{ transitionDelay: `${index * 110}ms` }}
                         >
                           <SidebarMenuButton asChild className="w-full">
                             <NavLink
