@@ -177,9 +177,10 @@ export function AppSidebar() {
           // item can finish animating before the content gets clipped.
           const openDurationMs = 300;
           const totalCloseMs = Math.max(0, (itemCount - 1) * STAGGER_MS + ITEM_ANIM_MS);
-          // Close: start collapsing immediately so the next category moves up while items fade out.
-          // Duration tracks the full stagger so we don't clip the remaining items.
+          // Close: let items start fading first (very short delay), then collapse so the next
+          // category moves up while the stagger is still happening.
           const closeCollapseMs = Math.max(260, totalCloseMs);
+          const closeDelayMs = Math.min(120, Math.floor(totalCloseMs * 0.2));
 
           const animationsEnabled = motionReady;
 
@@ -224,7 +225,7 @@ export function AppSidebar() {
                     transitionDuration: animationsEnabled
                       ? `${open ? openDurationMs : closeCollapseMs}ms`
                       : "0ms",
-                    transitionDelay: "0ms",
+                    transitionDelay: animationsEnabled ? `${open ? 0 : closeDelayMs}ms` : "0ms",
                   }}
                 >
                   <SidebarGroupContent>
