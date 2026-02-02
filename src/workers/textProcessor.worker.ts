@@ -14,7 +14,8 @@ import {
   filterCloud,
   filterCloudWithMode,
   filterLogin,
-  filterPassword
+  filterPassword,
+  pairUserWithPasswords
 } from '../utils/textProcessors';
 
 interface ProcessMessage {
@@ -49,7 +50,8 @@ const processors: Record<string, (text: string, keyword?: string) => string> = {
   filterCloud,
   filterCloudWithMode,
   filterLogin,
-  filterPassword
+  filterPassword,
+  pairUserWithPasswords
 };
 
 self.onmessage = (e: MessageEvent<ProcessMessage>) => {
