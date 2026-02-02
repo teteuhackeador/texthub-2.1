@@ -114,7 +114,7 @@ export function AppSidebar() {
     <Sidebar
       collapsible="icon"
       side="right"
-      className="bg-sidebar/85 supports-[backdrop-filter]:bg-sidebar/70 backdrop-blur-md"
+      className="bg-sidebar/35 supports-[backdrop-filter]:bg-sidebar/25 backdrop-blur-[1px]"
     >
       <SidebarContent>
         <div className="p-4 border-b border-border">
