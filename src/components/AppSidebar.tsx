@@ -46,7 +46,7 @@ const menuCategories = [
     items: [
       { title: "Início", url: "/", icon: Home },
       { title: "Dividir em Partes", url: "/dividir-partes", icon: Split },
-      { title: "HAR Reducer", url: "/har-reducer", icon: FileJson },
+      { title: "Reduzir HAR", url: "/har-reducer", icon: FileJson },
     ]
   },
   {
