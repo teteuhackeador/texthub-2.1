@@ -1,84 +1,59 @@
 
-Objetivo
-- Corrigir a animação das categorias na sidebar para:
-  1) Animar também ao ABRIR (hoje só está perceptível ao FECHAR).
-  2) Ao FECHAR, desaparecer de BAIXO para CIMA (último item sai primeiro).
-  3) Ao ABRIR, aparecer de CIMA para BAIXO (primeiro item entra primeiro).
-  4) Manter o estilo clean e minimalista, sem “exageros”.
+## Objetivo
+Eliminar de vez o “efeito fantasma” onde, ao alternar a sidebar no desktop (mini ↔ normal), as categorias aparecem abertas e imediatamente rodam a animação de fechar (mesmo já estando fechadas no estado salvo).
 
-Diagnóstico (o porquê do comportamento atual)
-- O Radix `CollapsibleContent` pode “não manter montado” o conteúdo quando está fechado (ou aplica `hidden/display` de forma que a transição de entrada não fica visível). Resultado: ao abrir, os itens “nascem” já no estado final e parece que aparece tudo junto; ao fechar, como eles já estão montados, dá para ver o stagger.
-- O stagger atual usa sempre `transitionDelay: index * Xms`. Isso faz:
-  - Abrir: top → bottom (ok).
-  - Fechar: também top → bottom (errado para o que você quer), porque o item 0 sai primeiro.
+## Diagnóstico (por que está acontecendo)
+Hoje, no modo **mini (collapsed)**, o código força:
+- `open = true` para todas as categorias (`const open = collapsed ? true : openByCategory[...]`)
 
-Mudanças propostas (alto nível)
-1) Garantir que a animação aconteça ao abrir
-- Adicionar `forceMount` em `<CollapsibleContent ...>` para manter o DOM montado mesmo quando fechado, permitindo que:
-  - O estado “closed” (opacity 0 / translate) exista antes do “open”
-  - A transição “closed → open” fique visível e suave
+Quando você volta para **normal (expanded)**, algumas categorias deveriam estar fechadas (pelo `openByCategory`), então o `open` muda de `true → false`. Como o `CollapsibleContent` está `forceMount`, o Radix aplica `data-state=closed` e o CSS de transição de altura + stagger dispara uma **animação real de fechamento**.
 
-2) Inverter a ordem do fechamento (bottom → top)
-- Ajustar o `transitionDelay` por item de acordo com o estado da categoria:
-  - Se a categoria está abrindo (`open === true`): delay = `index * STAGGER`
-  - Se está fechando (`open === false`): delay = `(items.length - 1 - index) * STAGGER`
-- Isso faz o último item (de baixo) sair primeiro, e o primeiro item (de cima) sair por último.
+A tentativa atual de “matar animação por 1 tick” (`motionReady` + `useEffect`) às vezes falha porque `useEffect` roda **depois do paint**. Ou seja: dá tempo do navegador pintar 1 frame com transições ativas e começar o fechamento; só depois o effect corta a animação (isso bate com o comportamento intermitente que você descreveu).
 
-3) Manter o container sincronizado (sem “cortar” os itens)
-- Manter o “accordion” (height) no `CollapsibleContent`, mas calibrar para combinar com o tempo total do stagger:
-  - Duração do container (height) deve ser próxima do tempo total do stagger, para não fechar o “height: 0” antes de os últimos itens terminarem de animar.
-  - Manter um pequeno `animation-delay` no fechamento do container (ou ajustar) para o container só começar a “encolher” depois que os itens começarem a sair (ou para não “engolir” a animação).
+## Estratégia de correção (o que vamos mudar)
+### 1) Trocar a supressão de animação de `useEffect` para `useLayoutEffect` no desktop
+- Vamos reagir à mudança `collapsed ↔ expanded` em **useLayoutEffect** (não useEffect).
+- `useLayoutEffect` roda **antes do browser pintar**, então conseguimos:
+  1) colocar `motionReady = false` imediatamente (antes do frame que iniciaria a animação),
+  2) deixar o React/DOM aplicar o novo layout (largura da sidebar + estados open/closed),
+  3) só então reabilitar `motionReady = true` (com 2 rAFs como já fazemos).
 
-Detalhes técnicos (onde e como)
-Arquivo: `src/components/AppSidebar.tsx`
+Resultado esperado: ao alternar mini ↔ normal, as categorias já “nascem” no estado certo (abertas/fechadas), sem rodar transição de fechamento.
 
-A) CollapsibleContent
-- Adicionar `forceMount`:
-  - `<CollapsibleContent forceMount className="..." />`
-- Revisar timings do container:
-  - `data-[state=open]:animate-[accordion-down_XXXms_ease-out]`
-  - `data-[state=closed]:[animation-delay:YYYms] data-[state=closed]:animate-[accordion-up_XXXms_ease-in]`
-- Critério: `XXXms` deve cobrir aproximadamente `STAGGER*(n-1) + ITEM_DURATION` (n = qtd de itens da categoria “Filtrar”/“Remover” etc.). Exemplo:
-  - ITEM_DURATION = 240–300ms
-  - STAGGER = 60–90ms
-  - Para 7 itens: total ~ 6*75 + 280 = 730ms → container ~ 700–800ms
+### 2) Consolidar o “kill switch” de animação em um único “motion gate”
+Hoje o gate é só `motionReady`. Vamos deixar isso mais determinístico:
+- Criar um `motionGateRef` / `isTransitioningSidebarRef` (ref booleana) que fica `true` durante a troca mini ↔ normal.
+- Computar `animationsEnabled` como:
+  - `motionReady && !isTransitioningSidebarRef.current`
+- Esse ref evita casos onde `motionReady` volta a `true` cedo demais em alguma re-renderização.
 
-B) SidebarMenuItem (stagger real por estado)
-- Trocar o style atual:
-  - de: `style={{ transitionDelay: \`\${index * 75}ms\` }}`
-  - para: usar uma variável `delayMs` calculada usando `open` e `category.items.length`:
-    - `const delayIndex = open ? index : (category.items.length - 1 - index)`
-    - `transitionDelay: \`\${delayIndex * STAGGER}ms\``
-- Manter as classes clean:
-  - `transition-[transform,opacity] duration-280 ease-out will-change-transform`
-  - `group-data-[state=open]/cat:translate-y-0 group-data-[state=open]/cat:opacity-100`
-  - `group-data-[state=closed]/cat:-translate-y-1 group-data-[state=closed]/cat:opacity-0`
+### 3) Garantir que o “toggle mini ↔ normal” não dispara fechamento em cascata por re-render extra
+- Revisar dependências dos effects para evitar re-execução “desnecessária” durante a troca.
+- Confirmar que `suppressMotionForATick` não depende de valores que mudem e causem re-render em cadeia.
+- Manter cancelamento de rAFs (já existe) para evitar “re-enable” tardio.
 
-C) Acessibilidade/performance (opcional mas recomendado)
-- Respeitar `prefers-reduced-motion`:
-  - Em modo reduzido: remover stagger (delay 0) e reduzir/zerar as animações (ou deixar só fade rápido).
+## Arquivos que serão mexidos
+- `src/components/AppSidebar.tsx`
+  - Importar `useLayoutEffect`
+  - Substituir o effect que escuta `collapsed` (desktop) por `useLayoutEffect`
+  - Ajustar `animationsEnabled` para levar em conta um “transition flag” via ref
+  - (Opcional) aplicar o mesmo padrão no effect do mobile por consistência, mas o alvo principal é desktop.
 
-Sequência de implementação
-1) Ajustar `CollapsibleContent` adicionando `forceMount`.
-2) Implementar cálculo de delay condicional (open vs closed) em cada `SidebarMenuItem`.
-3) Calibrar os timings do container (accordion) para não “comer” o stagger (principalmente no fechamento).
-4) Testes manuais:
-   - Abrir/fechar categorias com poucos itens (Adicionar/Manter) e com muitos (Filtrar/Remover).
-   - Confirmar:
-     - Abrir: itens entram um por vez de cima para baixo.
-     - Fechar: itens saem um por vez de baixo para cima.
-     - Mobile: clicar item fecha sidebar (continua ok) e não trava animação.
-     - Modo collapsed: continua sempre aberto (sem flicker).
+## Critérios de aceite (testes manuais bem objetivos)
+1) Desktop:
+   - Feche, por exemplo, “Filtrar” e “Remover”.
+   - Deixe a sidebar em modo normal.
+   - Clique para virar mini.
+   - Clique para voltar ao normal.
+   - Esperado: “Filtrar” e “Remover” já aparecem fechadas imediatamente, **sem animar fechando**.
+2) Ainda no desktop:
+   - Clique para abrir/fechar manualmente uma categoria.
+   - Esperado: animação de abrir e a animação de fechar continuam do jeito “perfeito” que você aprovou (stagger bottom→top no fechar, com altura colapsando no timing certo).
+3) Repetir o ciclo mini ↔ normal umas 10 vezes rápido.
+   - Esperado: zero ocorrência intermitente do bug.
 
-Critérios de pronto (o que você vai notar)
-- Ao abrir uma categoria, dá para “ver” claramente cada item descendo/entrando em sequência.
-- Ao fechar, o último item some primeiro, e a lista “recolhe” visualmente de baixo para cima.
-- O movimento é suave, sem bounce/exagero, mantendo a estética clean atual.
+## Observações técnicas (para garantir que não quebre nada)
+- `useLayoutEffect` pode rodar apenas no client; em Vite/React SPA isso é ok.
+- O `forceMount` continua (ele é útil para medir altura e manter layout estável), só vamos impedir a transição fantasma no momento da troca mini ↔ normal.
+- Não vamos remover nenhuma animação: só impedir que rode quando a mudança é “estrutural” (toggle da sidebar), não uma intenção do usuário de fechar a categoria.
 
-Riscos/edge cases
-- Se o Radix estiver aplicando `display: none`/`hidden` agressivamente, `forceMount` resolve na maioria dos casos; se ainda houver corte, ajustamos o delay do container no fechamento e/ou removemos o delay do container e deixamos só o stagger (dependendo do resultado).
-- Se alguma categoria tiver itens dinâmicos no futuro, o cálculo por `category.items.length` continua correto.
-
-Estimativa
-- Implementação: 10–20 min
-- Calibração visual (timings): 10–15 min (dependendo do “feeling” desejado)
