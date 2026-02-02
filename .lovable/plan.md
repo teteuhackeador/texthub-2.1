@@ -1,97 +1,74 @@
 
-Objetivo
-- Fazer as categorias da sidebar (Geral/Filtrar/Adicionar/Manter/Remover) serem “clicáveis”: ao clicar, a lista de opções recolhe; ao clicar de novo, expande.
-- Adicionar uma animação suave de abrir/fechar.
-- Manter o comportamento atual no modo “mini” (sidebar recolhida só com ícones): sempre mostrar os ícones (não colapsar grupos nesse modo), conforme sua escolha.
+Objetivo (o que vai mudar)
+- No **Filtrar Cloud** (modo “Criar Usuário:Senha”):
+  - Remover o exemplo “inv” do placeholder do campo Usuário.
+  - Trocar o título “Texto de Entrada” para **“Senhas”** (somente quando estiver nesse modo).
+- Em **Filtrar Cloud** e em **todas as ferramentas que usam o componente `TextProcessor`**:
+  - “Colar texto manualmente” vira o padrão (não mostrar o importador primeiro).
+  - Adicionar um botão de **Importar** com ícone (Upload) ao lado do botão de **Limpar**, mantendo a mesma função atual (abrir o importador / alternar para a tela de importação).
 
-O que eu encontrei no código atual
-- A sidebar é baseada no componente shadcn em `src/components/ui/sidebar.tsx` e a navegação está em `src/components/AppSidebar.tsx`.
-- Hoje cada categoria é renderizada como:
-  - `SidebarGroup` + `SidebarGroupLabel` (apenas texto)
-  - `SidebarGroupContent` com o `SidebarMenu` (sempre visível)
-- Já existe Radix Collapsible em `src/components/ui/collapsible.tsx` (wrapper simples), o que facilita implementar expand/retract com animação.
-- O Tailwind já tem keyframes `accordion-down`/`accordion-up` no `tailwind.config.ts` (usados no Accordion). Podemos reutilizá-los com o Collapsible, porque ele também expõe `data-state="open|closed"`.
+Arquivos que vou inspecionar/alterar
+- `src/pages/FilterCloud.tsx`
+- `src/components/TextProcessor.tsx`
 
-Decisão de implementação (comportamentos confirmados por você)
-- “Várias abertas”: cada categoria terá estado independente (não é accordion).
-- “Pode fechar ativa”: mesmo que a rota atual esteja dentro, ainda pode fechar manualmente.
-- “Sempre mostrar ícones” no modo mini: quando `state === "collapsed"`, os grupos ficarão sempre “abertos” visualmente (ícones aparecendo) e o clique no título da categoria não será usado.
+Mudanças detalhadas
 
-Mudanças planejadas (alto nível)
-1) Transformar cada categoria em um Collapsible
-- Em `AppSidebar.tsx`, envolver cada `SidebarGroup` em um `<Collapsible>` (Radix).
-- Substituir o label atual por um trigger clicável quando a sidebar estiver expandida.
+1) Filtrar Cloud: campo Usuário sem exemplo “inv”
+- Em `src/pages/FilterCloud.tsx`, no `<Input ... placeholder="ex: inv" />`:
+  - Trocar para um placeholder neutro, por exemplo: `placeholder="Digite o usuário..."` (sem exemplo).
 
-2) Adicionar animação de abrir/fechar
-- Usar `CollapsibleContent` e aplicar classes com base no `data-state`:
-  - `overflow-hidden`
-  - `data-[state=open]:animate-accordion-down`
-  - `data-[state=closed]:animate-accordion-up`
-- Isso reaproveita os keyframes já presentes no Tailwind.
+2) Filtrar Cloud: “Texto de Entrada” -> “Senhas” só no modo Usuário:Senha
+- Em `src/pages/FilterCloud.tsx`, onde está:
+  - `<CardTitle className="text-xl">Texto de Entrada</CardTitle>`
+- Alterar para um título dinâmico:
+  - Se `filterMode === "user:password"`: mostrar **“Senhas”**
+  - Caso contrário: manter **“Texto de Entrada”**
+- Motivo: nos outros modos a entrada é o JSON/linhas do cloud, então “Senhas” ficaria enganoso.
 
-3) UI do “título da categoria” como botão
-- Quando a sidebar estiver expandida:
-  - `SidebarGroupLabel` vira um botão/trigger (usando `CollapsibleTrigger asChild`) com estilo semelhante ao atual, mas com affordance de clique.
-  - Adicionar ícone de seta (ex: `ChevronDown`) que gira ao abrir (ex: `group-data-[state=open]:rotate-180` ou equivalente via data-attributes do Radix).
-- Quando a sidebar estiver recolhida (mini):
-  - Manter como hoje: label escondido (`!collapsed && category.label`).
-  - Forçar conteúdo aberto para não “sumir” os ícones por grupo.
+3) Filtrar Cloud: colar manualmente como padrão
+- Em `src/pages/FilterCloud.tsx`:
+  - Alterar `const [showManualInput, setShowManualInput] = useState(false);` para `useState(true);`
+  - Alterar `clearInput()` para manter o padrão manual:
+    - hoje: `setShowManualInput(false);`
+    - novo: `setShowManualInput(true);`
+- Resultado esperado:
+  - Ao abrir a ferramenta (sem dados), já aparece a textarea para colar.
+  - Se o usuário clicar em “Importar”, aí sim abre o `FileImporter`.
 
-4) Estado (aberto/fechado) por categoria
-- Implementar um `useState<Record<string, boolean>>` em `AppSidebar.tsx` (chave = `category.label`).
-- Valores iniciais:
-  - Quando expandida: começar com todas abertas (ou manter um padrão simples: todas abertas).
-  - Quando recolhida: renderizar com `open={true}` (ignorando o estado) para sempre mostrar ícones.
-- Atualização:
-  - Clique no trigger alterna apenas a categoria clicada.
+4) Filtrar Cloud: botão de Importar com ícone (Upload) ao lado da lixeira
+- Em `src/pages/FilterCloud.tsx`:
+  - Importar o ícone `Upload` do `lucide-react` junto com os outros ícones.
+  - No bloco onde hoje existe o botão “Importar arquivo” (que só aparece quando `inputLineCount === 0` e `!useVirtualization`), manter a mesma lógica/ação (`onClick={() => setShowManualInput(false)}`), mas adicionar o ícone:
+    - `<Upload className="w-4 h-4 mr-2" />`
+  - Manter o texto do botão como está (“Importar arquivo”) para ficar claro.
 
-Arquivos que serão alterados
-- `src/components/AppSidebar.tsx`
-  - Importar `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` de `@/components/ui/collapsible`
-  - Importar `ChevronDown` do `lucide-react`
-  - Refatorar o map de `menuCategories` para usar Collapsible e o estado por categoria
-  - Adicionar classes de animação no conteúdo colapsável
+5) TextProcessor (todas as ferramentas baseadas nele): colar manualmente como padrão
+- Em `src/components/TextProcessor.tsx`:
+  - Alterar `const [showManualInput, setShowManualInput] = useState(false);` para `useState(true);`
+  - Alterar `clearInput()`:
+    - hoje: `setShowManualInput(false);`
+    - novo: `setShowManualInput(true);`
+- Isso afeta automaticamente páginas como: Remover Duplicatas, Remover URLs, Filtrar CPF/Email/User/Numérico, etc., porque elas usam `TextProcessor`.
 
-Detalhe técnico (como ficará a estrutura por categoria)
-- Estrutura alvo (simplificada):
+6) TextProcessor: adicionar ícone de Importar no botão que alterna para o importador
+- Em `src/components/TextProcessor.tsx`:
+  - Adicionar `Upload` no import do `lucide-react` (hoje só tem Trash2/Copy/Download).
+  - No botão “Importar arquivo” (aquele que chama `setShowManualInput(false)`), inserir o ícone `<Upload ... />` antes do texto, mantendo exatamente o comportamento atual.
 
-```text
-Collapsible (open={...} onOpenChange={...})
-  SidebarGroup
-    CollapsibleTrigger (asChild)
-      SidebarGroupLabel (vira botão clicável quando expanded)
-        "Filtrar" + ChevronDown (rotaciona)
-    CollapsibleContent (anima altura)
-      SidebarGroupContent
-        SidebarMenu (itens)
-```
+Checklist de testes (end-to-end)
+- Filtrar Cloud:
+  - Entrar em `/filter-cloud`, selecionar “Criar Usuário:Senha”.
+  - Verificar:
+    - Título do card de entrada agora é “Senhas”.
+    - Campo Usuário não mostra mais “ex: inv”.
+    - Ao abrir a página sem dados, já aparece a textarea (sem precisar clicar).
+    - Botão “Importar arquivo” tem ícone e ao clicar abre o importador (FileImporter) como antes.
+    - Botão “Limpar” volta para textarea (modo colar) como padrão.
+- Ferramentas com `TextProcessor` (ex.: Remover Duplicatas):
+  - Abrir a ferramenta e confirmar que a textarea aparece por padrão.
+  - Confirmar que existe botão “Importar arquivo” com ícone que alterna para o FileImporter.
+  - Confirmar que “Limpar” volta para a textarea (modo colar).
 
-Animações e classes (resumo)
-- `CollapsibleContent`:
-  - `className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"`
-- Trigger/label:
-  - `className="cursor-pointer select-none ..."` (mantendo tipografia e cores atuais)
-  - `ChevronDown` com `transition-transform` e rotação baseada em `data-state`.
-
-Critérios de aceite (o que você vai ver na tela)
-- Sidebar expandida:
-  - Clicar em “Filtrar” recolhe/expande apenas os itens de “Filtrar”.
-  - Animação suave no abrir/fechar.
-  - Outras categorias permanecem como estão (várias podem ficar abertas).
-- Sidebar mini (recolhida):
-  - Ícones continuam aparecendo (sem “sumir” por categoria).
-  - A funcionalidade de recolher categorias não atrapalha a navegação nesse modo.
-
-Plano de teste (rápido)
-- Desktop:
-  - Abrir/fechar 2-3 categorias diferentes e confirmar que a animação funciona.
-  - Alternar a sidebar entre expandida/recolhida e confirmar que no modo mini os ícones continuam visíveis.
-- Mobile:
-  - Abrir sidebar, recolher/expandir categorias, clicar em um item e confirmar que a sidebar mobile fecha (já existe `setOpenMobile(false)`).
-
-Riscos / observações
-- Se a animação “accordion” (0.2s) ficar rápida/lenta demais, ajustaremos a duração no Tailwind (ou aplicaremos `duration-300` no conteúdo), mas primeiro vou manter consistente com o restante do projeto.
-- Como você escolheu “pode fechar ativa”, não vou forçar abrir automaticamente a categoria que contém a rota atual (mas isso pode ser adicionado depois como opção).
-
-Próximo passo
-- Após sua aprovação, eu implemento a refatoração em `AppSidebar.tsx` seguindo os passos acima e valido no preview.
+Riscos/observações
+- Essa mudança não altera processamento nem workers; é somente UX/labels/estado inicial.
+- O `FileImporter` continuará disponível (apenas deixa de ser a tela padrão).
