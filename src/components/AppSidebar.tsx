@@ -91,7 +91,7 @@ const menuCategories = [
 ];
 
 export function AppSidebar() {
-  const { state, setOpenMobile } = useSidebar();
+  const { state, setOpenMobile, openMobile, isMobile } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -102,7 +102,7 @@ export function AppSidebar() {
     [],
   );
 
-  const [openByCategory, setOpenByCategory] = useState<Record<string, boolean>>(() => {
+  const readOpenStateFromStorage = (): Record<string, boolean> => {
     try {
       const raw = localStorage.getItem(OPEN_STATE_STORAGE_KEY);
       if (!raw) return defaultOpenByCategory;
@@ -112,13 +112,31 @@ export function AppSidebar() {
     } catch {
       return defaultOpenByCategory;
     }
-  });
+  };
 
-  // Prevent “startup” animations when the sidebar remounts (ex: mobile close/open).
+  const [openByCategory, setOpenByCategory] = useState<Record<string, boolean>>(() => readOpenStateFromStorage());
+
+  // Prevent “startup” animations when the sidebar remounts / reopens (ex: mobile close/open).
   const [motionReady, setMotionReady] = useState(false);
+
+  // First mount: enable animations only after the initial paint.
   useEffect(() => {
-    setMotionReady(true);
+    const raf = requestAnimationFrame(() => setMotionReady(true));
+    return () => cancelAnimationFrame(raf);
   }, []);
+
+  // Mobile: when the Sheet opens, re-hydrate categories and keep animations disabled for this open.
+  // This avoids the “everything appears open then closes” glitch.
+  useEffect(() => {
+    if (!isMobile) return;
+    if (!openMobile) return;
+
+    setMotionReady(false);
+    setOpenByCategory(readOpenStateFromStorage());
+
+    const raf = requestAnimationFrame(() => setMotionReady(true));
+    return () => cancelAnimationFrame(raf);
+  }, [isMobile, openMobile]);
 
   useEffect(() => {
     try {
