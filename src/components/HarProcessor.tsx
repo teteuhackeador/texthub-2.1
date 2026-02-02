@@ -117,7 +117,7 @@ const HarProcessor = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileJson className="w-6 h-6" />
-            HAR Reducer
+            Reduzir HAR
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
