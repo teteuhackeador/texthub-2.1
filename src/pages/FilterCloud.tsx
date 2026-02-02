@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Trash2, Copy, Download } from "lucide-react";
+import { Trash2, Copy, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { VirtualTextarea } from "@/components/VirtualTextarea";
 import { Progress } from "@/components/ui/progress";
@@ -19,7 +19,7 @@ const FilterCloud = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [useVirtualization, setUseVirtualization] = useState(false);
-  const [showManualInput, setShowManualInput] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(true);
   const [filterMode, setFilterMode] = useState<FilterMode>("login:password");
   const [paramUser, setParamUser] = useState("");
   const workerRef = useRef<Worker | null>(null);
@@ -148,7 +148,7 @@ const FilterCloud = () => {
     setInputLines([]);
     setInputText("");
     setUseVirtualization(false);
-    setShowManualInput(false);
+    setShowManualInput(true);
   };
 
   const clearOutput = () => {
@@ -258,7 +258,7 @@ const FilterCloud = () => {
                 <Input
                   value={paramUser}
                   onChange={(e) => setParamUser(e.target.value)}
-                  placeholder="ex: inv"
+                  placeholder="Digite o usuário..."
                 />
                 <p className="text-sm text-muted-foreground">
                   Cole as senhas no campo de entrada (1 por linha). O resultado será <span className="font-mono">usuario:senha</span>.
@@ -271,7 +271,9 @@ const FilterCloud = () => {
         <Card className="glass-card">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Texto de Entrada</CardTitle>
+              <CardTitle className="text-xl">
+                {filterMode === "user:password" ? "Senhas" : "Texto de Entrada"}
+              </CardTitle>
               {inputLineCount > 0 && (
                 <span className="text-sm text-muted-foreground">
                   {inputLineCount.toLocaleString()} linhas
@@ -317,6 +319,7 @@ const FilterCloud = () => {
                       onClick={() => setShowManualInput(false)}
                       className="h-9"
                     >
+                      <Upload className="w-4 h-4 mr-2" />
                       Importar arquivo
                     </Button>
                   )}
