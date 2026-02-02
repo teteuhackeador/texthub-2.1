@@ -1,50 +1,97 @@
 
 Objetivo
-- Fazer o texto da opção da sidebar realmente aumentar ao passar o mouse (hoje só muda o fundo para cinza).
-- Manter: apenas o item em hover aumenta (não todos).
-- Manter: aumento “de baixo para cima” (transform origin no bottom).
+- Fazer as categorias da sidebar (Geral/Filtrar/Adicionar/Manter/Remover) serem “clicáveis”: ao clicar, a lista de opções recolhe; ao clicar de novo, expande.
+- Adicionar uma animação suave de abrir/fechar.
+- Manter o comportamento atual no modo “mini” (sidebar recolhida só com ícones): sempre mostrar os ícones (não colapsar grupos nesse modo), conforme sua escolha.
 
-O que eu encontrei (causa mais provável)
-- No shadcn sidebar, o `SidebarMenuButton` aplica automaticamente no item classes como `overflow-hidden` (veja `src/components/ui/sidebar.tsx`, `sidebarMenuButtonVariants`).
-- Como você está usando `<SidebarMenuButton asChild>`, essas classes são aplicadas diretamente no seu `<NavLink>`.
-- Quando tentamos dar `scale` no texto, ele tenta “crescer” para fora do container, mas o `overflow-hidden` do `<NavLink>` corta (clip) o conteúdo. Resultado visual: você percebe o highlight cinza, mas o texto parece não aumentar.
+O que eu encontrei no código atual
+- A sidebar é baseada no componente shadcn em `src/components/ui/sidebar.tsx` e a navegação está em `src/components/AppSidebar.tsx`.
+- Hoje cada categoria é renderizada como:
+  - `SidebarGroup` + `SidebarGroupLabel` (apenas texto)
+  - `SidebarGroupContent` com o `SidebarMenu` (sempre visível)
+- Já existe Radix Collapsible em `src/components/ui/collapsible.tsx` (wrapper simples), o que facilita implementar expand/retract com animação.
+- O Tailwind já tem keyframes `accordion-down`/`accordion-up` no `tailwind.config.ts` (usados no Accordion). Podemos reutilizá-los com o Collapsible, porque ele também expõe `data-state="open|closed"`.
 
-Solução (abordagem)
-1) Sobrescrever o `overflow-hidden` do item do menu
-- Em `src/components/AppSidebar.tsx`, no `NavLink` (que está dentro de `SidebarMenuButton asChild`), adicionar `overflow-visible` (idealmente no final do className para “ganhar” na prioridade).
-- Se ainda existir conflito de ordem, usar a variante importante do Tailwind: `!overflow-visible`.
+Decisão de implementação (comportamentos confirmados por você)
+- “Várias abertas”: cada categoria terá estado independente (não é accordion).
+- “Pode fechar ativa”: mesmo que a rota atual esteja dentro, ainda pode fechar manualmente.
+- “Sempre mostrar ícones” no modo mini: quando `state === "collapsed"`, os grupos ficarão sempre “abertos” visualmente (ícones aparecendo) e o clique no título da categoria não será usado.
 
-2) Garantir que o elemento que escala fique “por cima” e ancorado embaixo
-- Manter o “grupo nomeado” para isolar hover:
-  - `NavLink` com `group/navitem`
-  - Elemento do texto com `group-hover/navitem:scale-110`
-- No wrapper do texto (o `div` que você criou), manter:
-  - `origin-bottom` (crescer de baixo para cima)
-  - `inline-block` + `transition-transform` + `will-change-transform`
-- Se necessário para garantir visibilidade, adicionar:
-  - `relative` no wrapper do texto
-  - `z-10` no wrapper do texto
-  (isso evita que o texto escalado pareça “por baixo” do container em algumas combinações de stacking)
+Mudanças planejadas (alto nível)
+1) Transformar cada categoria em um Collapsible
+- Em `AppSidebar.tsx`, envolver cada `SidebarGroup` em um `<Collapsible>` (Radix).
+- Substituir o label atual por um trigger clicável quando a sidebar estiver expandida.
 
-3) Checklist de validação (rápido)
-- Hover em “Início”: só “Início” cresce; “Dividir em Partes” e “HAR Reducer” não crescem.
-- Crescimento percebido “para cima” (origin-bottom).
-- Testar também em rotas longas como `/filter-intelx` (onde você está) e com sidebar colapsada/expandida.
+2) Adicionar animação de abrir/fechar
+- Usar `CollapsibleContent` e aplicar classes com base no `data-state`:
+  - `overflow-hidden`
+  - `data-[state=open]:animate-accordion-down`
+  - `data-[state=closed]:animate-accordion-up`
+- Isso reaproveita os keyframes já presentes no Tailwind.
 
-Arquivos a alterar
+3) UI do “título da categoria” como botão
+- Quando a sidebar estiver expandida:
+  - `SidebarGroupLabel` vira um botão/trigger (usando `CollapsibleTrigger asChild`) com estilo semelhante ao atual, mas com affordance de clique.
+  - Adicionar ícone de seta (ex: `ChevronDown`) que gira ao abrir (ex: `group-data-[state=open]:rotate-180` ou equivalente via data-attributes do Radix).
+- Quando a sidebar estiver recolhida (mini):
+  - Manter como hoje: label escondido (`!collapsed && category.label`).
+  - Forçar conteúdo aberto para não “sumir” os ícones por grupo.
+
+4) Estado (aberto/fechado) por categoria
+- Implementar um `useState<Record<string, boolean>>` em `AppSidebar.tsx` (chave = `category.label`).
+- Valores iniciais:
+  - Quando expandida: começar com todas abertas (ou manter um padrão simples: todas abertas).
+  - Quando recolhida: renderizar com `open={true}` (ignorando o estado) para sempre mostrar ícones.
+- Atualização:
+  - Clique no trigger alterna apenas a categoria clicada.
+
+Arquivos que serão alterados
 - `src/components/AppSidebar.tsx`
+  - Importar `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` de `@/components/ui/collapsible`
+  - Importar `ChevronDown` do `lucide-react`
+  - Refatorar o map de `menuCategories` para usar Collapsible e o estado por categoria
+  - Adicionar classes de animação no conteúdo colapsável
 
-Mudanças exatas (o que será editado)
-- No `NavLink` (className), acrescentar algo como:
-  - `overflow-visible` (ou `!overflow-visible`) no final
-- (Opcional, se ainda não aparecer) No wrapper do texto:
-  - adicionar `relative z-10`
+Detalhe técnico (como ficará a estrutura por categoria)
+- Estrutura alvo (simplificada):
 
-Riscos / Observações
-- Tornar `overflow-visible` pode permitir que o texto “invada” um pouco a área ao lado durante o hover. Em geral isso é desejado aqui, porque o objetivo é ver a escala.
-- Se você achar o efeito forte demais, podemos trocar `scale-110` por `scale-105` depois que funcionar.
+```text
+Collapsible (open={...} onOpenChange={...})
+  SidebarGroup
+    CollapsibleTrigger (asChild)
+      SidebarGroupLabel (vira botão clicável quando expanded)
+        "Filtrar" + ChevronDown (rotaciona)
+    CollapsibleContent (anima altura)
+      SidebarGroupContent
+        SidebarMenu (itens)
+```
 
-Critérios de aceite
-- Ao passar o mouse em um item, apenas aquele item aumenta de tamanho.
-- O crescimento ocorre a partir de baixo (origin-bottom).
-- O hover continua mostrando o destaque cinza como hoje, mas agora com escala visível.
+Animações e classes (resumo)
+- `CollapsibleContent`:
+  - `className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"`
+- Trigger/label:
+  - `className="cursor-pointer select-none ..."` (mantendo tipografia e cores atuais)
+  - `ChevronDown` com `transition-transform` e rotação baseada em `data-state`.
+
+Critérios de aceite (o que você vai ver na tela)
+- Sidebar expandida:
+  - Clicar em “Filtrar” recolhe/expande apenas os itens de “Filtrar”.
+  - Animação suave no abrir/fechar.
+  - Outras categorias permanecem como estão (várias podem ficar abertas).
+- Sidebar mini (recolhida):
+  - Ícones continuam aparecendo (sem “sumir” por categoria).
+  - A funcionalidade de recolher categorias não atrapalha a navegação nesse modo.
+
+Plano de teste (rápido)
+- Desktop:
+  - Abrir/fechar 2-3 categorias diferentes e confirmar que a animação funciona.
+  - Alternar a sidebar entre expandida/recolhida e confirmar que no modo mini os ícones continuam visíveis.
+- Mobile:
+  - Abrir sidebar, recolher/expandir categorias, clicar em um item e confirmar que a sidebar mobile fecha (já existe `setOpenMobile(false)`).
+
+Riscos / observações
+- Se a animação “accordion” (0.2s) ficar rápida/lenta demais, ajustaremos a duração no Tailwind (ou aplicaremos `duration-300` no conteúdo), mas primeiro vou manter consistente com o restante do projeto.
+- Como você escolheu “pode fechar ativa”, não vou forçar abrir automaticamente a categoria que contém a rota atual (mas isso pode ser adicionado depois como opção).
+
+Próximo passo
+- Após sua aprovação, eu implemento a refatoração em `AppSidebar.tsx` seguindo os passos acima e valido no preview.
