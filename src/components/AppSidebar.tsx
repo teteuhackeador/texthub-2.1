@@ -175,8 +175,8 @@ export function AppSidebar() {
                   className="
                     overflow-hidden
                     [animation-fill-mode:forwards]
-                    data-[state=open]:animate-[accordion-down_900ms_ease-out]
-                    data-[state=closed]:[animation-delay:280ms] data-[state=closed]:animate-[accordion-up_900ms_ease-in]
+                    data-[state=open]:animate-[accordion-down_600ms_ease-out]
+                    data-[state=closed]:[animation-delay:180ms] data-[state=closed]:animate-[accordion-up_600ms_ease-in]
                       group/cat
                   "
                 >
@@ -188,12 +188,12 @@ export function AppSidebar() {
                           className={
                             [
                               // Minimal stagger: slide+fade, one-by-one.
-                              "transition-[transform,opacity] duration-400 ease-out will-change-transform",
+                              "transition-[transform,opacity] duration-280 ease-out will-change-transform",
                               "group-data-[state=open]/cat:translate-y-0 group-data-[state=open]/cat:opacity-100",
                               "group-data-[state=closed]/cat:-translate-y-1 group-data-[state=closed]/cat:opacity-0",
                             ].join(" ")
                           }
-                          style={{ transitionDelay: `${index * 110}ms` }}
+                          style={{ transitionDelay: `${index * 75}ms` }}
                         >
                           <SidebarMenuButton asChild className="w-full">
                             <NavLink
