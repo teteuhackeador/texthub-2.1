@@ -19,7 +19,7 @@ import {
   Cloud,
   ChevronDown,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -100,6 +100,11 @@ export function AppSidebar() {
   const motionRaf1Ref = useRef<number | null>(null);
   const motionRaf2Ref = useRef<number | null>(null);
 
+  // While toggling desktop sidebar (mini <-> normal), we must prevent *any* category
+  // animations from running. useLayoutEffect below sets this before paint.
+  const isSidebarTransitioningRef = useRef(false);
+  const [sidebarTransitioning, setSidebarTransitioning] = useState(false);
+
   const suppressMotionForATick = useCallback(() => {
     // Cancel any pending re-enable.
     if (motionRaf1Ref.current) cancelAnimationFrame(motionRaf1Ref.current);
@@ -125,15 +130,34 @@ export function AppSidebar() {
   // If the user had categories saved as closed, expanding would immediately animate a mass-close.
   // We disable animations for a single frame on that transition.
   const prevCollapsedRef = useRef(collapsed);
-  useEffect(() => {
+
+  // Desktop: kill animations BEFORE the browser paints the new collapsed state.
+  useLayoutEffect(() => {
+    if (isMobile) return;
+
     const wasCollapsed = prevCollapsedRef.current;
     prevCollapsedRef.current = collapsed;
 
     // Any toggle of the sidebar (collapsed <-> expanded) should NOT re-run category animations.
     if (wasCollapsed !== collapsed) {
-      suppressMotionForATick();
+      // Cancel any pending re-enable.
+      if (motionRaf1Ref.current) cancelAnimationFrame(motionRaf1Ref.current);
+      if (motionRaf2Ref.current) cancelAnimationFrame(motionRaf2Ref.current);
+
+      isSidebarTransitioningRef.current = true;
+      setSidebarTransitioning(true);
+      setMotionReady(false);
+
+      // Two rAFs to ensure the DOM applied the new layout/state before re-enabling transitions.
+      motionRaf1Ref.current = requestAnimationFrame(() => {
+        motionRaf2Ref.current = requestAnimationFrame(() => {
+          isSidebarTransitioningRef.current = false;
+          setSidebarTransitioning(false);
+          setMotionReady(true);
+        });
+      });
     }
-  }, [collapsed]);
+  }, [collapsed, isMobile]);
 
   const defaultOpenByCategory = useMemo(
     () => Object.fromEntries(menuCategories.map((c) => [c.label, true])) as Record<string, boolean>,
@@ -236,7 +260,7 @@ export function AppSidebar() {
           // Delay the height collapse so items can fade out bottom->top without being clipped.
           const closeDelayMs = Math.max(0, totalCloseMs - closeCollapseMs);
 
-          const animationsEnabled = motionReady;
+           const animationsEnabled = motionReady && !sidebarTransitioning && !isSidebarTransitioningRef.current;
 
           return (
             <Collapsible
