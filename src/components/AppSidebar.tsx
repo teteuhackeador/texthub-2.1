@@ -53,6 +53,12 @@ const menuCategories = [
     ]
   },
   {
+    label: "Manter",
+    items: [
+      { title: "Manter Palavra-chave", url: "/keep-keyword", icon: Eye },
+    ]
+  },
+  {
     label: "Filtrar",
     items: [
       { title: "Filtrar 123...", url: "/filter-numeric", icon: Binary },
@@ -65,18 +71,6 @@ const menuCategories = [
     ]
   },
   {
-    label: "Adicionar",
-    items: [
-      { title: "Adicionar Sufixo", url: "/add-suffix", icon: Plus },
-    ]
-  },
-  {
-    label: "Manter",
-    items: [
-      { title: "Manter Palavra-chave", url: "/keep-keyword", icon: Eye },
-    ]
-  },
-  {
     label: "Remover",
     items: [
       { title: "Remover Checados", url: "/remove-checked", icon: CheckCheck },
@@ -85,6 +79,12 @@ const menuCategories = [
       { title: "Remover Palavra-chave", url: "/remove-keyword", icon: Search },
       { title: "Remover Símbolos CPF", url: "/remove-cpf-symbols", icon: Hash },
       { title: "Remover URL", url: "/remove-urls", icon: Link },
+    ]
+  },
+  {
+    label: "Adicionar",
+    items: [
+      { title: "Adicionar Sufixo", url: "/add-suffix", icon: Plus },
     ]
   },
 ];
@@ -150,10 +150,10 @@ export function AppSidebar() {
           // Keep the container (height) transition long enough so the last staggered
           // item can finish animating before the content gets clipped.
           const openDurationMs = 300;
-          const closeDurationMs = Math.max(
-            300,
-            (itemCount - 1) * STAGGER_MS + ITEM_ANIM_MS,
-          );
+          const closeCollapseMs = 260;
+          const totalCloseMs = Math.max(0, (itemCount - 1) * STAGGER_MS + ITEM_ANIM_MS);
+          // Delay the height collapse so items can fade out bottom->top without being clipped.
+          const closeDelayMs = Math.max(0, totalCloseMs - closeCollapseMs);
 
           return (
             <Collapsible
@@ -192,7 +192,10 @@ export function AppSidebar() {
                     transition-[height] ease-in-out
                     data-[state=closed]:pointer-events-none
                   "
-                  style={{ transitionDuration: `${open ? openDurationMs : closeDurationMs}ms` }}
+                  style={{
+                    transitionDuration: `${open ? openDurationMs : closeCollapseMs}ms`,
+                    transitionDelay: `${open ? 0 : closeDelayMs}ms`,
+                  }}
                 >
                   <SidebarGroupContent>
                     <SidebarMenu className="space-y-1">
