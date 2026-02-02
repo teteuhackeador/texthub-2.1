@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Trash2, Copy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { VirtualTextarea } from "@/components/VirtualTextarea";
@@ -9,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { FileImporter } from "@/components/FileImporter";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-type FilterMode = "login" | "password" | "login:password" | "url:login:password";
+type FilterMode = "login" | "password" | "login:password" | "url:login:password" | "user:password";
 
 const FilterCloud = () => {
   const [inputLines, setInputLines] = useState<string[]>([]);
@@ -20,6 +21,7 @@ const FilterCloud = () => {
   const [useVirtualization, setUseVirtualization] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>("login:password");
+  const [paramUser, setParamUser] = useState("");
   const workerRef = useRef<Worker | null>(null);
   const { toast } = useToast();
 
@@ -95,8 +97,27 @@ const FilterCloud = () => {
       return;
     }
 
+    if (filterMode === "user:password" && !paramUser.trim()) {
+      toast({
+        title: "Aviso",
+        description: "Por favor, informe o usuário.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     setProgress(0);
+
+    if (filterMode === "user:password") {
+      workerRef.current?.postMessage({
+        type: 'process',
+        lines: inputLines,
+        processorName: 'pairUserWithPasswords',
+        keyword: paramUser,
+      });
+      return;
+    }
 
     workerRef.current?.postMessage({
       type: 'process',
@@ -166,6 +187,7 @@ const FilterCloud = () => {
       case "password": return "Senha";
       case "login:password": return "Login:Senha";
       case "url:login:password": return "URL:Login:Senha";
+      case "user:password": return "Usuário:Senha";
     }
   };
 
@@ -214,9 +236,37 @@ const FilterCloud = () => {
               >
                 Filtrar URL:Login:Senha
               </ToggleGroupItem>
+
+              <ToggleGroupItem
+                value="user:password"
+                className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              >
+                Criar Usuário:Senha
+              </ToggleGroupItem>
             </ToggleGroup>
           </CardContent>
         </Card>
+
+        {filterMode === "user:password" && (
+          <Card className="glass-card">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">Parâmetros</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="max-w-md space-y-2">
+                <label className="text-sm text-muted-foreground">Usuário</label>
+                <Input
+                  value={paramUser}
+                  onChange={(e) => setParamUser(e.target.value)}
+                  placeholder="ex: inv"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Cole as senhas no campo de entrada (1 por linha). O resultado será <span className="font-mono">usuario:senha</span>.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="glass-card">
           <CardHeader className="pb-4">

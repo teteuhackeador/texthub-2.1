@@ -515,6 +515,19 @@ export const filterCloudWithMode = (text: string, mode: string = 'login:password
   return results.join('\n');
 };
 
+// Cria linhas no formato usuario:senha a partir de uma lista de senhas (1 por linha)
+export const pairUserWithPasswords = (text: string, user: string): string => {
+  const u = (user || '').trim();
+  if (!u) return '';
+
+  const passwords = text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  return passwords.map(p => `${u}:${p}`).join('\n');
+};
+
 export const filterLogin = (text: string): string => {
   const lines = text.split('\n');
   const results: string[] = [];
