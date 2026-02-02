@@ -114,7 +114,18 @@ export function AppSidebar() {
     <Sidebar
       collapsible="icon"
       side="right"
-      className="bg-sidebar/35 supports-[backdrop-filter]:bg-sidebar/25 backdrop-blur-[1px]"
+      className={
+        [
+          // O componente ui/sidebar aplica `bg-sidebar` no container interno
+          // `[data-sidebar=sidebar]`. Para garantir transparência, estilizamos
+          // esse elemento explicitamente.
+          "[&_[data-sidebar=sidebar]]:bg-sidebar/35",
+          "supports-[backdrop-filter]:[&_[data-sidebar=sidebar]]:bg-sidebar/20",
+          "[&_[data-sidebar=sidebar]]:backdrop-blur-md",
+          // Mantém o wrapper sem fundo para não ficar opaco
+          "bg-transparent",
+        ].join(" ")
+      }
     >
       <SidebarContent>
         <div className="p-4 border-b border-border">
