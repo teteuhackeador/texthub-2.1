@@ -19,7 +19,7 @@ import {
   Cloud,
   ChevronDown,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -97,15 +97,29 @@ export function AppSidebar() {
 
   const collapsed = state === "collapsed";
 
-  const suppressMotionForATick = () => {
+  const motionRaf1Ref = useRef<number | null>(null);
+  const motionRaf2Ref = useRef<number | null>(null);
+
+  const suppressMotionForATick = useCallback(() => {
+    // Cancel any pending re-enable.
+    if (motionRaf1Ref.current) cancelAnimationFrame(motionRaf1Ref.current);
+    if (motionRaf2Ref.current) cancelAnimationFrame(motionRaf2Ref.current);
+
     setMotionReady(false);
-    // Two rAFs to ensure the DOM has applied the new layout/state before re-enabling transitions.
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => setMotionReady(true));
-      return () => cancelAnimationFrame(raf2);
+    // Two rAFs to ensure the DOM applied the new layout/state before re-enabling transitions.
+    motionRaf1Ref.current = requestAnimationFrame(() => {
+      motionRaf2Ref.current = requestAnimationFrame(() => {
+        setMotionReady(true);
+      });
     });
-    return () => cancelAnimationFrame(raf1);
-  };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (motionRaf1Ref.current) cancelAnimationFrame(motionRaf1Ref.current);
+      if (motionRaf2Ref.current) cancelAnimationFrame(motionRaf2Ref.current);
+    };
+  }, []);
 
   // When switching from collapsed (mini) -> expanded, the UI used to force all categories open.
   // If the user had categories saved as closed, expanding would immediately animate a mass-close.
@@ -117,7 +131,7 @@ export function AppSidebar() {
 
     // Any toggle of the sidebar (collapsed <-> expanded) should NOT re-run category animations.
     if (wasCollapsed !== collapsed) {
-      return suppressMotionForATick();
+      suppressMotionForATick();
     }
   }, [collapsed]);
 
@@ -158,8 +172,8 @@ export function AppSidebar() {
     setMotionReady(false);
     setOpenByCategory(readOpenStateFromStorage());
 
-    return suppressMotionForATick();
-  }, [isMobile, openMobile]);
+    suppressMotionForATick();
+  }, [isMobile, openMobile, suppressMotionForATick]);
 
   useEffect(() => {
     try {
