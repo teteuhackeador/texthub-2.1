@@ -19,7 +19,7 @@ import {
   Cloud,
   ChevronDown,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -96,6 +96,21 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   const collapsed = state === "collapsed";
+
+  // When switching from collapsed (mini) -> expanded, the UI used to force all categories open.
+  // If the user had categories saved as closed, expanding would immediately animate a mass-close.
+  // We disable animations for a single frame on that transition.
+  const prevCollapsedRef = useRef(collapsed);
+  useEffect(() => {
+    const wasCollapsed = prevCollapsedRef.current;
+    prevCollapsedRef.current = collapsed;
+
+    if (wasCollapsed && !collapsed) {
+      setMotionReady(false);
+      const raf = requestAnimationFrame(() => setMotionReady(true));
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [collapsed]);
 
   const defaultOpenByCategory = useMemo(
     () => Object.fromEntries(menuCategories.map((c) => [c.label, true])) as Record<string, boolean>,
