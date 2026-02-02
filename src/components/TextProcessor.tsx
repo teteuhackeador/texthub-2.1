@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Trash2, Copy, Download } from "lucide-react";
+import { Trash2, Copy, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { VirtualTextarea } from "@/components/VirtualTextarea";
 import { Progress } from "@/components/ui/progress";
@@ -33,7 +33,7 @@ const TextProcessor = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [useVirtualization, setUseVirtualization] = useState(false);
-  const [showManualInput, setShowManualInput] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(true);
   const workerRef = useRef<Worker | null>(null);
   const { toast } = useToast();
 
@@ -152,7 +152,7 @@ const TextProcessor = ({
     setInputLines([]);
     setInputText("");
     setUseVirtualization(false);
-    setShowManualInput(false);
+    setShowManualInput(true);
   };
 
   const clearOutput = () => {
@@ -256,6 +256,7 @@ const TextProcessor = ({
                     onClick={() => setShowManualInput(false)}
                     className="h-9"
                   >
+                    <Upload className="w-4 h-4 mr-2" />
                     Importar arquivo
                   </Button>
                 )}
