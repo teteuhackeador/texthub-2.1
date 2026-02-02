@@ -19,7 +19,7 @@ import {
   Cloud,
   ChevronDown,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -39,6 +39,36 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
+const STAGGER_MS = 70;
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(!!mql.matches);
+    update();
+
+    // Safari < 14 uses addListener/removeListener
+    if ("addEventListener" in mql) {
+      mql.addEventListener("change", update);
+    } else {
+      (mql as MediaQueryList & { addListener: (cb: () => void) => void }).addListener(update);
+    }
+
+    return () => {
+      if ("removeEventListener" in mql) {
+        mql.removeEventListener("change", update);
+      } else {
+        (mql as MediaQueryList & { removeListener: (cb: () => void) => void }).removeListener(update);
+      }
+    };
+  }, []);
+
+  return reduced;
+}
 
 const menuCategories = [
   {
@@ -90,8 +120,8 @@ export function AppSidebar() {
   const { state, setOpenMobile } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const prefersReducedMotion = usePrefersReducedMotion();
 
-  const isActive = (path: string) => currentPath === path;
   const collapsed = state === "collapsed";
 
   const defaultOpenByCategory = useMemo(
@@ -172,17 +202,24 @@ export function AppSidebar() {
                 )}
 
                 <CollapsibleContent
+                  forceMount
                   className="
                     overflow-hidden
                     [animation-fill-mode:forwards]
-                    data-[state=open]:animate-[accordion-down_600ms_ease-out]
-                    data-[state=closed]:[animation-delay:180ms] data-[state=closed]:animate-[accordion-up_600ms_ease-in]
+                    data-[state=open]:animate-[accordion-down_720ms_ease-out]
+                    data-[state=closed]:[animation-delay:160ms] data-[state=closed]:animate-[accordion-up_720ms_ease-in]
                       group/cat
                   "
                 >
                   <SidebarGroupContent>
                     <SidebarMenu className="space-y-1">
-                      {category.items.map((item, index) => (
+                      {category.items.map((item, index) => {
+                        const delayIndex = open
+                          ? index
+                          : (category.items.length - 1 - index);
+                        const delayMs = prefersReducedMotion ? 0 : delayIndex * STAGGER_MS;
+
+                        return (
                         <SidebarMenuItem
                           key={item.title}
                           className={
@@ -191,9 +228,10 @@ export function AppSidebar() {
                               "transition-[transform,opacity] duration-280 ease-out will-change-transform",
                               "group-data-[state=open]/cat:translate-y-0 group-data-[state=open]/cat:opacity-100",
                               "group-data-[state=closed]/cat:-translate-y-1 group-data-[state=closed]/cat:opacity-0",
+                              "motion-reduce:transition-none",
                             ].join(" ")
                           }
-                          style={{ transitionDelay: `${index * 75}ms` }}
+                          style={{ transitionDelay: `${delayMs}ms` }}
                         >
                           <SidebarMenuButton asChild className="w-full">
                             <NavLink
@@ -213,7 +251,8 @@ export function AppSidebar() {
                             </NavLink>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
-                      ))}
+                        );
+                      })}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>
