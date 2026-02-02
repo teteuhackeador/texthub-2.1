@@ -81,7 +81,7 @@ const Index = () => {
       <div className="container mx-auto px-6 py-8 relative z-10">
         {/* Welcome Section */}
         <div className="text-center mb-12 fade-in-up">
-          <h1 className="text-4xl font-bold text-gradient mb-3">Bem-vindo ao MultiTools</h1>
+          <h1 className="text-4xl font-bold text-gradient mb-3">Bem-vindo ao TextHub</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Processador de texto minimalista para dados no formato login:senha e listas gerais.
             Escolha uma ferramenta no menu lateral ou clique nos cards abaixo.

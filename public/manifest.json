@@ -1,6 +1,6 @@
 {
-  "name": "MultiTools - Processador de Texto",
-  "short_name": "MultiTools",
+  "name": "TextHub - Processador de Texto",
+  "short_name": "TextHub",
   "description": "Processador de texto minimalista para dados login:senha e listas gerais",
   "start_url": "/",
   "display": "standalone",

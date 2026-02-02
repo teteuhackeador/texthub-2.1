@@ -43,7 +43,7 @@ const App = () => (
             <div className="relative z-10 flex-1 flex flex-col">
               <header className="h-12 flex items-center border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 transition-all duration-300">
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="font-semibold text-gradient">MultiTools</span>
+                  <span className="font-semibold text-gradient">TextHub</span>
                 </div>
                 <SidebarTrigger className="mr-4" />
               </header>
