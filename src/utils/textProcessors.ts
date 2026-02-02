@@ -1,4 +1,4 @@
-// Text processing utilities for MultiTools
+// Text processing utilities for TextHub
 
 export const removeDuplicates = (text: string): string => {
   const lines = text.split('\n').filter(line => line.trim() !== '');
