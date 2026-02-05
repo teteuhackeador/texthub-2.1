@@ -461,55 +461,67 @@ export const filterCloudWithMode = (text: string, mode: string = 'login:password
   let currentUser: string | null = null;
   let currentPsw: string | null = null;
 
+  const maybeEmit = () => {
+    if (!currentUser || !currentPsw) return;
+
+    switch (mode) {
+      case 'login':
+        results.push(currentUser);
+        break;
+      case 'password':
+        results.push(currentPsw);
+        break;
+      case 'login:password':
+        results.push(`${currentUser}:${currentPsw}`);
+        break;
+      case 'url:login:password':
+        results.push(`${currentUrl || ''}:${currentUser}:${currentPsw}`);
+        break;
+      default:
+        results.push(`${currentUser}:${currentPsw}`);
+    }
+
+    currentUrl = null;
+    currentUser = null;
+    currentPsw = null;
+  };
+
   for (const line of lines) {
     const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
 
-    // Look for "url" field
-    const urlMatch = trimmedLine.match(/"url"\s*:\s*"([^"]+)"/);
-    if (urlMatch) {
-      currentUrl = urlMatch[1];
-    }
+    // --- JSON cloud format ---
+    // "url": "..."
+    const jsonUrlMatch = trimmedLine.match(/"url"\s*:\s*"([^"]+)"/i);
+    if (jsonUrlMatch) currentUrl = jsonUrlMatch[1];
 
-    // Look for "user" field
-    const userMatch = trimmedLine.match(/"user"\s*:\s*"([^"]+)"/);
-    if (userMatch) {
-      currentUser = userMatch[1];
-    }
+    // "user": "..."
+    const jsonUserMatch = trimmedLine.match(/"user"\s*:\s*"([^"]+)"/i);
+    if (jsonUserMatch) currentUser = jsonUserMatch[1];
 
-    // Look for "psw" field first, then "password" field
-    const pswMatch = trimmedLine.match(/"psw"\s*:\s*"([^"]+)"/);
-    if (pswMatch) {
-      currentPsw = pswMatch[1];
+    // "psw": "..." OR "password": "..."
+    const jsonPswMatch = trimmedLine.match(/"psw"\s*:\s*"([^"]+)"/i);
+    if (jsonPswMatch) {
+      currentPsw = jsonPswMatch[1];
     } else {
-      // Try "password" field as fallback
-      const passwordMatch = trimmedLine.match(/"password"\s*:\s*"([^"]+)"/);
-      if (passwordMatch) {
-        currentPsw = passwordMatch[1];
-      }
+      const jsonPasswordMatch = trimmedLine.match(/"password"\s*:\s*"([^"]+)"/i);
+      if (jsonPasswordMatch) currentPsw = jsonPasswordMatch[1];
     }
 
-    // When we have both user and psw, emit based on mode
-    if (currentUser && currentPsw) {
-      switch (mode) {
-        case 'login':
-          results.push(currentUser);
-          break;
-        case 'password':
-          results.push(currentPsw);
-          break;
-        case 'login:password':
-          results.push(`${currentUser}:${currentPsw}`);
-          break;
-        case 'url:login:password':
-          results.push(`${currentUrl || ''}:${currentUser}:${currentPsw}`);
-          break;
-        default:
-          results.push(`${currentUser}:${currentPsw}`);
-      }
-      currentUrl = null;
-      currentUser = null;
-      currentPsw = null;
-    }
+    // --- Text block format (Soft/Host/Login/Password) ---
+    // Host: https://...
+    const hostMatch = trimmedLine.match(/^(?:Host|URL|Url|Hostname)\s*:\s*(.+)$/i);
+    if (hostMatch) currentUrl = hostMatch[1].trim();
+
+    // Login: xxx OR User: xxx OR Username: xxx
+    const loginMatch = trimmedLine.match(/^(?:Login|User|Username)\s*:\s*(.+)$/i);
+    if (loginMatch) currentUser = loginMatch[1].trim();
+
+    // Password: yyy OR Pass: yyy OR Psw: yyy
+    const passMatch = trimmedLine.match(/^(?:Password|Pass|Psw)\s*:\s*(.+)$/i);
+    if (passMatch) currentPsw = passMatch[1].trim();
+
+    maybeEmit();
   }
 
   return results.join('\n');

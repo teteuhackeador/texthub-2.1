@@ -197,7 +197,7 @@ const FilterCloud = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">Filtrar Cloud</h1>
           <p className="text-muted-foreground">
-            Extrai credenciais de arquivos JSON no formato cloud (google-chrome passwords)
+            Extrai credenciais de arquivos JSON no formato cloud e também de logs em bloco (Host/Login/Password)
           </p>
         </div>
 
