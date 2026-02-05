@@ -64,8 +64,8 @@ self.onmessage = (e: MessageEvent<ProcessMessage>) => {
       return;
     }
 
-    // For removeDuplicates, process all lines at once to maintain uniqueness
-    if (processorName === 'removeDuplicates') {
+    // Some processors depend on context across lines; process them in one shot.
+    if (processorName === 'removeDuplicates' || processorName === 'filterCloud' || processorName === 'filterCloudWithMode') {
       const allText = lines.join('\n');
       const processedText = processor(allText, keyword);
       const resultLines = processedText.split('\n').filter(l => l.trim());
