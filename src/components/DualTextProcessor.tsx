@@ -33,36 +33,40 @@ const DualTextProcessor = ({
 
   const countLines = (text: string): number => {
     if (!text.trim()) return 0;
-    return text.split('\n').filter(line => line.trim() !== '').length;
+    return text.split("\n").filter((line) => line.trim() !== "").length;
   };
 
-  const handleFileUpload = (
+  const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
     setTextFn: (text: string) => void
   ) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === "text/plain") {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        setTextFn(text);
-        toast({
-          title: "Arquivo carregado",
-          description: `${countLines(text).toLocaleString()} linhas importadas.`,
-        });
-      };
-      reader.onerror = () => {
-        toast({
-          title: "Erro",
-          description: "Erro ao ler o arquivo",
-          variant: "destructive",
-        });
-      };
-      reader.readAsText(file);
-    } else {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) return;
+
+    const invalid = files.find((f) => !f.name.toLowerCase().endsWith(".txt"));
+    if (invalid) {
       toast({
         title: "Erro",
-        description: "Por favor, selecione apenas arquivos .txt",
+        description: `Arquivo inválido: ${invalid.name}. Use apenas .txt`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = contents.join("\n");
+      setTextFn(merged);
+      toast({
+        title: "Arquivo(s) carregado(s)",
+        description: `${countLines(merged).toLocaleString()} linhas importadas.`,
+      });
+    } catch {
+      toast({
+        title: "Erro",
+        description: "Erro ao ler o(s) arquivo(s)",
         variant: "destructive",
       });
     }
@@ -158,7 +162,7 @@ const DualTextProcessor = ({
             <Textarea
               value={input1Text}
               onChange={(e) => setInput1Text(e.target.value)}
-              placeholder=""
+              placeholder={input1Placeholder}
               className="min-h-[200px] resize-none font-mono"
             />
             <div className="absolute bottom-2 right-2 text-sm text-muted-foreground bg-background/80 px-2 py-1 rounded z-10">
@@ -169,6 +173,7 @@ const DualTextProcessor = ({
             ref={fileInput1Ref}
             type="file"
             accept=".txt"
+            multiple
             onChange={(e) => handleFileUpload(e, setInput1Text)}
             className="hidden"
           />
@@ -204,7 +209,7 @@ const DualTextProcessor = ({
             <Textarea
               value={input2Text}
               onChange={(e) => setInput2Text(e.target.value)}
-              placeholder=""
+              placeholder={input2Placeholder}
               className="min-h-[200px] resize-none font-mono"
             />
             <div className="absolute bottom-2 right-2 text-sm text-muted-foreground bg-background/80 px-2 py-1 rounded z-10">
@@ -215,6 +220,7 @@ const DualTextProcessor = ({
             ref={fileInput2Ref}
             type="file"
             accept=".txt"
+            multiple
             onChange={(e) => handleFileUpload(e, setInput2Text)}
             className="hidden"
           />
