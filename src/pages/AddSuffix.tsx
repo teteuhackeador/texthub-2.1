@@ -13,18 +13,27 @@ const AddSuffix = () => {
   const [suffix, setSuffix] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setInputText(text);
-      toast.success(`Arquivo "${file.name}" importado`);
-    };
-    reader.readAsText(file);
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
+    if (files.length === 0) return;
+
+    const invalid = files.find((f) => !f.name.toLowerCase().endsWith(".txt"));
+    if (invalid) {
+      toast.error(`Arquivo inválido: ${invalid.name}. Use apenas .txt`);
+      return;
+    }
+
+    try {
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = contents.join("\n");
+      setInputText(merged);
+      toast.success(
+        files.length === 1 ? `Arquivo "${files[0].name}" importado` : `${files.length} arquivos concatenados`
+      );
+    } catch {
+      toast.error("Erro ao ler o(s) arquivo(s)");
+    }
   }, []);
 
   const handleProcess = useCallback(() => {
@@ -109,6 +118,7 @@ const AddSuffix = () => {
               <input
                 type="file"
                 accept=".txt"
+                multiple
                 onChange={handleFileUpload}
                 ref={fileInputRef}
                 className="hidden"

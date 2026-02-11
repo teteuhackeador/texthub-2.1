@@ -13,28 +13,25 @@ const FilterByLength = () => {
   const [lengthInput, setLengthInput] = useState("3");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
-    if (!file.name.endsWith('.txt')) {
-      toast.error("Por favor, selecione um arquivo .txt");
+    if (files.length === 0) return;
+
+    const invalid = files.find((f) => !f.name.endsWith(".txt"));
+    if (invalid) {
+      toast.error(`Por favor, selecione apenas arquivos .txt (inválido: ${invalid.name})`);
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setInputText(text);
-      toast.success(`Arquivo importado: ${countLines(text)} linhas`);
-    };
-    reader.onerror = () => {
-      toast.error("Erro ao ler o arquivo");
-    };
-    reader.readAsText(file);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    try {
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = contents.join("\n");
+      setInputText(merged);
+      toast.success(`Arquivo(s) importado(s): ${countLines(merged)} linhas`);
+    } catch {
+      toast.error("Erro ao ler o(s) arquivo(s)");
     }
   }, []);
 
@@ -126,6 +123,7 @@ const FilterByLength = () => {
                   ref={fileInputRef}
                   type="file"
                   accept=".txt"
+                  multiple
                   onChange={handleFileUpload}
                   className="hidden"
                 />

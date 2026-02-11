@@ -77,19 +77,36 @@ const SplitParts = () => {
     });
   }, [toast]);
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        setInputText(text);
-        toast({
-          title: "Arquivo carregado",
-          description: `${countLines(text)} linhas importadas.`,
-        });
-      };
-      reader.readAsText(file);
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) return;
+
+    const invalid = files.find((f) => !f.name.toLowerCase().endsWith(".txt"));
+    if (invalid) {
+      toast({
+        title: "Erro",
+        description: `Arquivo inválido: ${invalid.name}. Use apenas .txt`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = contents.join("\n");
+      setInputText(merged);
+      toast({
+        title: "Arquivo(s) carregado(s)",
+        description: `${countLines(merged)} linhas importadas.`,
+      });
+    } catch {
+      toast({
+        title: "Erro",
+        description: "Erro ao ler o(s) arquivo(s)",
+        variant: "destructive",
+      });
     }
   }, [toast]);
 
@@ -137,6 +154,7 @@ const SplitParts = () => {
               id="file-upload"
               type="file"
               accept=".txt"
+              multiple
               className="hidden"
               onChange={handleFileUpload}
             />

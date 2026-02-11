@@ -13,34 +13,47 @@ const HarProcessor = () => {
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
 
-    if (!file.name.endsWith('.har') && !file.name.endsWith('.txt')) {
+    if (files.length === 0) return;
+
+    const invalid = files.find((f) => !f.name.endsWith(".har") && !f.name.endsWith(".txt"));
+    if (invalid) {
       toast({
         title: "Arquivo inválido",
-        description: "Por favor, selecione um arquivo .har ou .txt",
+        description: "Por favor, selecione apenas arquivos .har ou .txt",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Evita concatenar JSONs HAR (quebraria o formato). Permite múltiplos .txt.
+    const hasHar = files.some((f) => f.name.endsWith(".har"));
+    if (hasHar && files.length > 1) {
+      toast({
+        title: "Seleção inválida",
+        description: "Para .har, selecione apenas 1 arquivo por vez. Para .txt, pode selecionar vários.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const text = await file.text();
-      setInputContent(text);
+      const contents = await Promise.all(files.map((f) => f.text()));
+      const merged = contents.join("\n");
+      setInputContent(merged);
       toast({
-        title: "Arquivo carregado",
-        description: `${file.name} carregado com sucesso`,
+        title: "Arquivo(s) carregado(s)",
+        description: files.length === 1 ? `${files[0].name} carregado com sucesso` : `${files.length} arquivos concatenados`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Erro",
-        description: "Não foi possível ler o arquivo",
+        description: "Não foi possível ler o(s) arquivo(s)",
         variant: "destructive",
       });
     }
-
-    event.target.value = "";
   };
 
   const processHar = () => {
@@ -146,6 +159,7 @@ const HarProcessor = () => {
                   id="har-upload"
                   type="file"
                   accept=".har,.txt"
+                  multiple
                   onChange={handleFileUpload}
                   className="hidden"
                 />
