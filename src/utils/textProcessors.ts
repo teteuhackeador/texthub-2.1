@@ -297,6 +297,56 @@ const parseCSVLine = (line: string): string[] => {
   return result;
 };
 
+export const filterLeakSight = (text: string): string => {
+  return filterLeakSightWithMode(text, 'login:password');
+};
+
+export const filterLeakSightWithMode = (text: string, mode: string = 'login:password'): string => {
+  const lines = text.split('\n');
+  const results: string[] = [];
+  
+  let currentHost = '';
+  let currentUser = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    const hostMatch = line.match(/host:\s*"([^"]+)"/i);
+    if (hostMatch) currentHost = hostMatch[1].trim();
+
+    const userMatch = line.match(/user:\s*"([^"]+)"/i);
+    if (userMatch) currentUser = userMatch[1].trim();
+
+    const passMatch = line.match(/pass:\s*"([^"]+)"/i);
+    if (passMatch) {
+      const currentPass = passMatch[1].trim();
+      const u = (currentUser || '').trim();
+      const p = (currentPass || '').trim();
+
+      if (u || p) {
+        switch (mode) {
+          case 'login':
+            results.push(u);
+            break;
+          case 'password':
+            results.push(p);
+            break;
+          case 'login:password':
+            results.push(`${u}:${p}`);
+            break;
+          case 'url:login:password':
+            results.push(`${currentHost}:${u}:${p}`);
+            break;
+          default:
+            results.push(`${u}:${p}`);
+        }
+      }
+      currentUser = ''; // Reseta user para o próximo bloco
+    }
+  }
+  return results.join('\n');
+};
+
 export const filterCloud = (text: string): string => {
   return filterCloudWithMode(text, 'login:password');
 };

@@ -18,6 +18,7 @@ import {
   FileSearch,
   Cloud,
   ChevronDown,
+  Shield,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -64,6 +65,7 @@ const menuCategories = [
     items: [
       { title: "Filtrar 123...", url: "/filter-numeric", icon: Binary },
       { title: "Filtrar Cloud", url: "/filter-cloud", icon: Cloud },
+      { title: "Filtrar LeakSight", url: "/filter-leaksight", icon: Shield },
       { title: "Filtrar IntelX", url: "/filter-intelx", icon: FileSearch },
       { title: "Filtrar Log CPF", url: "/filter-cpf", icon: CreditCard },
       { title: "Filtrar Log Email", url: "/filter-email", icon: Mail },

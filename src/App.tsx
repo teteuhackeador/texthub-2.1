@@ -26,6 +26,7 @@ import HarReducer from "./pages/HarReducer";
 import AddSuffix from "./pages/AddSuffix";
 import FilterIntelX from "./pages/FilterIntelX";
 import FilterCloud from "./pages/FilterCloud";
+import FilterLeakSight from "./pages/FilterLeakSight";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
                   <Route path="/filter-by-length" element={<FilterByLength />} />
                   <Route path="/filter-intelx" element={<FilterIntelX />} />
                   <Route path="/filter-cloud" element={<FilterCloud />} />
+                  <Route path="/filter-leaksight" element={<FilterLeakSight />} />
                   <Route path="/add-suffix" element={<AddSuffix />} />
                   <Route path="/remove-domain" element={<RemoveDomain />} />
                   <Route path="/keep-keyword" element={<KeepKeyword />} />

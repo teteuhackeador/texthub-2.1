@@ -13,6 +13,8 @@ import {
   filterIntelX,
   filterCloud,
   filterCloudWithMode,
+  filterLeakSight,
+  filterLeakSightWithMode,
   filterLogin,
   filterPassword,
   pairUserWithPasswords
@@ -49,6 +51,8 @@ const processors: Record<string, (text: string, keyword?: string) => string> = {
   filterIntelX,
   filterCloud,
   filterCloudWithMode,
+  filterLeakSight,
+  filterLeakSightWithMode,
   filterLogin,
   filterPassword,
   pairUserWithPasswords
@@ -65,7 +69,7 @@ self.onmessage = (e: MessageEvent<ProcessMessage>) => {
     }
 
     // Some processors depend on context across lines; process them in one shot.
-    if (processorName === 'removeDuplicates' || processorName === 'filterCloud' || processorName === 'filterCloudWithMode') {
+    if (processorName === 'removeDuplicates' || processorName === 'filterCloud' || processorName === 'filterCloudWithMode' || processorName === 'filterLeakSight' || processorName === 'filterLeakSightWithMode') {
       const allText = lines.join('\n');
       const processedText = processor(allText, keyword);
       const resultLines = processedText.split('\n').filter(l => l.trim());
