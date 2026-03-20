@@ -174,7 +174,7 @@ const FilterLeakSight = () => {
     <div className="container mx-auto px-6 py-6 space-y-6 max-w-6xl relative">
       <div className="relative z-10">
         <div className="mb-6 flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500">
+          <div className="p-3 rounded-xl bg-primary/10 text-primary">
             <Shield className="w-8 h-8" />
           </div>
           <div>
@@ -185,7 +185,7 @@ const FilterLeakSight = () => {
           </div>
         </div>
 
-        <Card className="glass-card border-blue-500/20">
+        <Card className="glass-card">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl">Modo de Extração</CardTitle>
           </CardHeader>
@@ -198,25 +198,25 @@ const FilterLeakSight = () => {
             >
               <ToggleGroupItem
                 value="login"
-                className="px-4 py-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white"
+                className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Filtrar Login
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="password"
-                className="px-4 py-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white"
+                className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Filtrar Senha
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="login:password"
-                className="px-4 py-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white"
+                className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Filtrar Login:Senha
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="url:login:password"
-                className="px-4 py-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white"
+                className="px-4 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 Filtrar Host:Login:Senha
               </ToggleGroupItem>
@@ -302,7 +302,7 @@ const FilterLeakSight = () => {
           <Button
             onClick={processText}
             disabled={isProcessing || inputLineCount === 0}
-            className="w-full max-w-md text-lg py-3 bg-blue-600 hover:bg-blue-700"
+            className="w-full max-w-md text-lg py-3"
           >
             {isProcessing ? `Processando... ${Math.round(progress)}%` : `Processar LeakSight (${getModeLabel(filterMode)})`}
           </Button>
