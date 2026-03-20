@@ -303,7 +303,7 @@ export const filterLeakSight = (text: string): string => {
 
 export const filterLeakSightWithMode = (text: string, mode: string = 'login:password'): string => {
   const lines = text.split('\n');
-  const results: string[] = [];
+  const results = new Set<string>(); // Usando Set para remover duplicatas automaticamente
   
   let currentHost = '';
   let currentUser = '';
@@ -326,25 +326,25 @@ export const filterLeakSightWithMode = (text: string, mode: string = 'login:pass
       if (u || p) {
         switch (mode) {
           case 'login':
-            results.push(u);
+            results.add(u);
             break;
           case 'password':
-            results.push(p);
+            results.add(p);
             break;
           case 'login:password':
-            results.push(`${u}:${p}`);
+            results.add(`${u}:${p}`);
             break;
           case 'url:login:password':
-            results.push(`${currentHost}:${u}:${p}`);
+            results.add(`${currentHost}:${u}:${p}`);
             break;
           default:
-            results.push(`${u}:${p}`);
+            results.add(`${u}:${p}`);
         }
       }
       currentUser = ''; // Reseta user para o próximo bloco
     }
   }
-  return results.join('\n');
+  return Array.from(results).join('\n');
 };
 
 export const filterCloud = (text: string): string => {
